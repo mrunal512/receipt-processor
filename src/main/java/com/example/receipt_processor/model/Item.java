@@ -13,9 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Item {
-//    @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
-//    private Long id;
 
     @NotBlank
     private String shortDescription;
@@ -23,7 +20,4 @@ public class Item {
     @Pattern(regexp = "^\\d+\\.\\d{2}$")
     private String price;
 
-//    @ManyToOne
-//    @JoinColumn(name = "receipt_id")
-//    private Receipt receipt;
 }

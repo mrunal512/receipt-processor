@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import com.example.receipt_processor.model.Receipt;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.example.receipt_processor.repository.ReceiptRepository;
 import com.example.receipt_processor.service.ReceiptService;
 
 import java.util.Collections;

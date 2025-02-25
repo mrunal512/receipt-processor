@@ -1,5 +1,6 @@
 package com.example.receipt_processor.controller;
 
+import com.example.receipt_processor.exception.ReceiptNotFoundException;
 import com.example.receipt_processor.model.Receipt;
 import com.example.receipt_processor.service.ReceiptService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,12 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MockMvcBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.Collections;
@@ -69,5 +68,60 @@ class ReceiptControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/receipts/{id}/points", receiptId))
                 .andExpect(status().isOk())
                 .andExpect(content().json("{\"points\":" + points + "}"));
+    }
+
+    @Test
+    void testProcessReceiptWithInvalidData() throws Exception {
+        Receipt invalidReceipt = new Receipt();
+        invalidReceipt.setRetailer("");
+        invalidReceipt.setTotal("invalid_total");
+
+        mockMvc.perform(post("/receipts/process")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidReceipt)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testGetPointsReceiptNotFound() throws Exception {
+        UUID nonExistentId = UUID.randomUUID();
+        Mockito.when(receiptService.getPoint(nonExistentId)).thenThrow(new ReceiptNotFoundException("Receipt not found"));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/receipts/{id}/points", nonExistentId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testProcessReceiptWithMissingFields() throws Exception {
+        Receipt incompleteReceipt = new Receipt();
+        incompleteReceipt.setRetailer("RetailerName");
+
+        mockMvc.perform(post("/receipts/process")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(incompleteReceipt)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testProcessReceiptWithEmptyItemsList() throws Exception {
+        Receipt receiptWithEmptyItems = new Receipt();
+        receiptWithEmptyItems.setRetailer("RetailerName");
+        receiptWithEmptyItems.setPurchaseDate("2023-10-10");
+        receiptWithEmptyItems.setPurchaseTime("15:30");
+        receiptWithEmptyItems.setTotal("20.00");
+        receiptWithEmptyItems.setItems(Collections.emptyList());
+
+        mockMvc.perform(post("/receipts/process")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(receiptWithEmptyItems)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void testGetPointsWithInvalidUUIDFormat() throws Exception {
+        String invalidUUID = "invalid-uuid-format";
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/receipts/{id}/points", invalidUUID))
+                .andExpect(status().isBadRequest());
     }
 }
